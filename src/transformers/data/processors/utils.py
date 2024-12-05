@@ -16,6 +16,7 @@
 
 import copy
 import csv
+import sys
 import json
 import logging
 
@@ -23,7 +24,7 @@ from ...file_utils import is_tf_available, is_torch_available
 
 
 logger = logging.getLogger(__name__)
-
+csv.field_size_limit(sys.maxsize)
 
 class InputExample(object):
     """

@@ -48,12 +48,16 @@ python run_pretrain.py \
 
 In the following example,  we use DNABERT with kmer=6 as example. We use `prom-core`, a 2-class classification task as example.
 
+export DATA_PATH=sample_data/ft/$KMER
+
+
 ```
 cd examples
 
 export KMER=6
+export SOURCE=/home/orion-lab/repos/DNABERT
 export MODEL_PATH=/home/orion-lab/.cache/huggingface/hub/models--zhihan1996--DNA_bert_6/snapshots/55e0c0eb7b734c8b9b77bc083bf89eb6fbda1341
-export DATA_PATH=sample_data/ft/$KMER
+export DATA_PATH=/home/orion-lab/data/genome/seq
 export OUTPUT_PATH=./ft/$KMER
 
 python run_finetune.py \
@@ -68,7 +72,7 @@ python run_finetune.py \
     --per_gpu_eval_batch_size=8   \
     --per_gpu_train_batch_size=8   \
     --learning_rate 2e-4 \
-    --num_train_epochs 5.0 \
+    --num_train_epochs 2 \
     --output_dir $OUTPUT_PATH \
     --evaluate_during_training \
     --logging_steps 10 \
