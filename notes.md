@@ -23,13 +23,13 @@ python run_pretrain.py \
     --eval_data_file=$TEST_FILE \
     --mlm \
     --gradient_accumulation_steps 25 \
-    --per_gpu_train_batch_size 10 \
-    --per_gpu_eval_batch_size 6 \
-    --save_steps 500 \
-    --save_total_limit 20 \
-    --max_steps 200000 \
+    --per_gpu_train_batch_size 4 \
+    --per_gpu_eval_batch_size 4 \
+    --save_steps 5 \
+    --save_total_limit 2 \
+    --max_steps 100 \
     --evaluate_during_training \
-    --logging_steps 500 \
+    --logging_steps 5 \
     --line_by_line \
     --learning_rate 4e-4 \
     --block_size 512 \
@@ -38,7 +38,7 @@ python run_pretrain.py \
     --beta1 0.9 \
     --beta2 0.98 \
     --mlm_probability 0.025 \
-    --warmup_steps 10000 \
+    --warmup_steps 10 \
     --overwrite_output_dir \
-    --n_process 24
+    --n_process 8
 ```
