@@ -42,3 +42,40 @@ python run_pretrain.py \
     --overwrite_output_dir \
     --n_process 8
 ```
+
+
+#### 3.3 Fine-tune with pre-trained model
+
+In the following example,  we use DNABERT with kmer=6 as example. We use `prom-core`, a 2-class classification task as example.
+
+```
+cd examples
+
+export KMER=6
+export MODEL_PATH=/home/orion-lab/.cache/huggingface/hub/models--zhihan1996--DNA_bert_6/snapshots/55e0c0eb7b734c8b9b77bc083bf89eb6fbda1341
+export DATA_PATH=sample_data/ft/$KMER
+export OUTPUT_PATH=./ft/$KMER
+
+python run_finetune.py \
+    --model_type dna \
+    --tokenizer_name=dna$KMER \
+    --model_name_or_path $MODEL_PATH \
+    --task_name dnaprom \
+    --do_train \
+    --do_eval \
+    --data_dir $DATA_PATH \
+    --max_seq_length 512 \
+    --per_gpu_eval_batch_size=8   \
+    --per_gpu_train_batch_size=8   \
+    --learning_rate 2e-4 \
+    --num_train_epochs 5.0 \
+    --output_dir $OUTPUT_PATH \
+    --evaluate_during_training \
+    --logging_steps 10 \
+    --save_steps 40 \
+    --warmup_percent 0.1 \
+    --hidden_dropout_prob 0.1 \
+    --overwrite_output \
+    --weight_decay 0.01 \
+    --n_process 8
+```

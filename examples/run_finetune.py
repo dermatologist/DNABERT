@@ -34,49 +34,77 @@ from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, Tenso
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
 
-from transformers import (
-    WEIGHTS_NAME,
-    AdamW,
-    AlbertConfig,
-    AlbertForSequenceClassification,
-    AlbertTokenizer,
-    BertConfig,
-    BertForSequenceClassification,
-    BertForLongSequenceClassification,
-    BertForLongSequenceClassificationCat,
-    BertTokenizer,
-    DNATokenizer,
-    DistilBertConfig,
-    DistilBertForSequenceClassification,
-    DistilBertTokenizer,
-    FlaubertConfig,
-    FlaubertForSequenceClassification,
-    FlaubertTokenizer,
-    RobertaConfig,
-    RobertaForSequenceClassification,
-    RobertaTokenizer,
-    XLMConfig,
-    XLMForSequenceClassification,
-    XLMRobertaConfig,
-    XLMRobertaForSequenceClassification,
-    XLMRobertaTokenizer,
-    XLMTokenizer,
-    XLNetConfig,
-    XLNetForSequenceClassification,
-    XLNetTokenizer,
-    get_linear_schedule_with_warmup,
-)
-from transformers import glue_compute_metrics as compute_metrics
-from transformers import glue_convert_examples_to_features as convert_examples_to_features
-from transformers import glue_output_modes as output_modes
-from transformers import glue_processors as processors
+import sys
+SOURCE = os.environ.get('SOURCE', 'local')
+sys.path.append(SOURCE)
 
+from src.transformers.configuration_bert import BertConfig
+from src.transformers.modeling_bert import BertForMaskedLM, BertForSequenceClassification
+from src.transformers.tokenization_bert import BertTokenizer
+from src.transformers.tokenization_dna import DNATokenizer
+from src.transformers.tokenization_utils import PreTrainedTokenizer
+from src.transformers.modeling_utils import PreTrainedModel
+from src.transformers.optimization import AdamW, get_linear_schedule_with_warmup
 
-try:
-    from torch.utils.tensorboard import SummaryWriter
-except ImportError:
-    from tensorboardX import SummaryWriter
+# from transformers import (
+#     WEIGHTS_NAME,
+#     AdamW,
+#     AlbertConfig,
+#     AlbertForSequenceClassification,
+#     AlbertTokenizer,
+#     BertConfig,
+#     BertForSequenceClassification,
+#     BertForLongSequenceClassification,
+#     BertForLongSequenceClassificationCat,
+#     BertTokenizer,
+#     DNATokenizer,
+#     DistilBertConfig,
+#     DistilBertForSequenceClassification,
+#     DistilBertTokenizer,
+#     FlaubertConfig,
+#     FlaubertForSequenceClassification,
+#     FlaubertTokenizer,
+#     RobertaConfig,
+#     RobertaForSequenceClassification,
+#     RobertaTokenizer,
+#     XLMConfig,
+#     XLMForSequenceClassification,
+#     XLMRobertaConfig,
+#     XLMRobertaForSequenceClassification,
+#     XLMRobertaTokenizer,
+#     XLMTokenizer,
+#     XLNetConfig,
+#     XLNetForSequenceClassification,
+#     XLNetTokenizer,
+#     get_linear_schedule_with_warmup,
+# )
 
+# from transformers import glue_compute_metrics as compute_metrics
+# from transformers import glue_convert_examples_to_features as convert_examples_to_features
+# from transformers import glue_output_modes as output_modes
+# from transformers import glue_processors as processors
+
+import src.transformers.data.metrics as metrics
+import src.transformers.data as data
+compute_metrics = metrics.glue_compute_metrics
+processors = data.glue_processors
+output_modes = data.glue_output_modes
+convert_examples_to_features = data.glue_convert_examples_to_features
+
+# try:
+#     from torch.utils.tensorboard import SummaryWriter
+# except ImportError:
+#     from tensorboardX import SummaryWriter
+
+class SummaryWriter:
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def add_scalar(self, *args, **kwargs):
+        pass
+
+    def close(self, *args, **kwargs):
+        pass
 
 logger = logging.getLogger(__name__)
 
@@ -85,13 +113,13 @@ ALL_MODELS = sum(
         tuple(conf.pretrained_config_archive_map.keys())
         for conf in (
             BertConfig,
-            XLNetConfig,
-            XLMConfig,
-            RobertaConfig,
-            DistilBertConfig,
-            AlbertConfig,
-            XLMRobertaConfig,
-            FlaubertConfig,
+            # XLNetConfig,
+            # XLMConfig,
+            # RobertaConfig,
+            # DistilBertConfig,
+            # AlbertConfig,
+            # XLMRobertaConfig,
+            # FlaubertConfig,
         )
     ),
     (),
@@ -99,19 +127,20 @@ ALL_MODELS = sum(
 
 MODEL_CLASSES = {
     "dna": (BertConfig, BertForSequenceClassification, DNATokenizer),
-    "dnalong": (BertConfig, BertForLongSequenceClassification, DNATokenizer),
-    "dnalongcat": (BertConfig, BertForLongSequenceClassificationCat, DNATokenizer),
+    # "dnalong": (BertConfig, BertForLongSequenceClassification, DNATokenizer),
+    # "dnalongcat": (BertConfig, BertForLongSequenceClassificationCat, DNATokenizer),
     "bert": (BertConfig, BertForSequenceClassification, BertTokenizer),
-    "xlnet": (XLNetConfig, XLNetForSequenceClassification, XLNetTokenizer),
-    "xlm": (XLMConfig, XLMForSequenceClassification, XLMTokenizer),
-    "roberta": (RobertaConfig, RobertaForSequenceClassification, RobertaTokenizer),
-    "distilbert": (DistilBertConfig, DistilBertForSequenceClassification, DistilBertTokenizer),
-    "albert": (AlbertConfig, AlbertForSequenceClassification, AlbertTokenizer),
-    "xlmroberta": (XLMRobertaConfig, XLMRobertaForSequenceClassification, XLMRobertaTokenizer),
-    "flaubert": (FlaubertConfig, FlaubertForSequenceClassification, FlaubertTokenizer),
+    # "xlnet": (XLNetConfig, XLNetForSequenceClassification, XLNetTokenizer),
+    # "xlm": (XLMConfig, XLMForSequenceClassification, XLMTokenizer),
+    # "roberta": (RobertaConfig, RobertaForSequenceClassification, RobertaTokenizer),
+    # "distilbert": (DistilBertConfig, DistilBertForSequenceClassification, DistilBertTokenizer),
+    # "albert": (AlbertConfig, AlbertForSequenceClassification, AlbertTokenizer),
+    # "xlmroberta": (XLMRobertaConfig, XLMRobertaForSequenceClassification, XLMRobertaTokenizer),
+    # "flaubert": (FlaubertConfig, FlaubertForSequenceClassification, FlaubertTokenizer),
 }
-                    
-TOKEN_ID_GROUP = ["bert", "dnalong", "dnalongcat", "xlnet", "albert"] 
+
+# TOKEN_ID_GROUP = ["bert", "dnalong", "dnalongcat", "xlnet", "albert"]
+TOKEN_ID_GROUP = ["bert", "dna"]
 
 def set_seed(args):
     random.seed(args.seed)
@@ -319,7 +348,7 @@ def train(args, train_dataset, model, tokenizer):
                                 stop_count = 0
 
                             last_auc = results["auc"]
-                            
+
                             if stop_count == args.early_stop:
                                 logger.info("Early stop")
                                 return global_step, tr_loss / global_step
@@ -382,7 +411,7 @@ def evaluate(args, model, tokenizer, prefix="", evaluate=True):
     eval_outputs_dirs = (args.output_dir, args.output_dir + "-MM") if args.task_name == "mnli" else (args.output_dir,)
     if args.task_name[:3] == "dna":
         softmax = torch.nn.Softmax(dim=1)
-        
+
 
     results = {}
     for eval_task, eval_output_dir in zip(eval_task_names, eval_outputs_dirs):
@@ -448,10 +477,10 @@ def evaluate(args, model, tokenizer, prefix="", evaluate=True):
         else:
             result = compute_metrics(eval_task, preds, out_label_ids, probs)
         results.update(result)
-        
+
         if args.task_name == "dna690":
             eval_output_dir = args.result_dir
-            if not os.path.exists(args.result_dir): 
+            if not os.path.exists(args.result_dir):
                 os.makedirs(args.result_dir)
         output_eval_file = os.path.join(eval_output_dir, prefix, "eval_results.txt")
         with open(output_eval_file, "a") as writer:
@@ -542,7 +571,7 @@ def predict(args, model, tokenizer, prefix=""):
             result = compute_metrics(pred_task, preds, out_label_ids, probs[:,1])
         else:
             result = compute_metrics(pred_task, preds, out_label_ids, probs)
-        
+
         pred_output_dir = args.predict_dir
         if not os.path.exists(pred_output_dir):
                os.makedir(pred_output_dir)
@@ -572,7 +601,7 @@ def visualize(args, model, tokenizer, kmer, prefix=""):
     if not os.path.exists(args.predict_dir):
         os.makedirs(args.predict_dir)
     softmax = torch.nn.Softmax(dim=1)
-    
+
 
     for pred_task, pred_output_dir in zip(pred_task_names, pred_outputs_dirs):
         '''
@@ -581,8 +610,8 @@ def visualize(args, model, tokenizer, kmer, prefix=""):
         else:
             args.data_dir = deepcopy(args.visualize_data_dir).replace("/690", "/690/" + str(kmer))
         '''
-            
-            
+
+
         evaluate = False if args.visualize_train else True
         pred_dataset = load_and_cache_examples(args, pred_task, tokenizer, evaluate=evaluate)
 
@@ -610,7 +639,7 @@ def visualize(args, model, tokenizer, kmer, prefix=""):
         else:
             preds = np.zeros([len(pred_dataset),3])
         attention_scores = np.zeros([len(pred_dataset), 12, args.max_seq_length, args.max_seq_length])
-        
+
         for index, batch in enumerate(tqdm(pred_dataloader, desc="Predicting")):
             model.eval()
             batch = tuple(t.to(args.device) for t in batch)
@@ -625,7 +654,7 @@ def visualize(args, model, tokenizer, kmer, prefix=""):
                 attention = outputs[-1][-1]
                 _, logits = outputs[:2]
 
-                
+
                 preds[index*batch_size:index*batch_size+len(batch[0]),:] = logits.detach().cpu().numpy()
                 attention_scores[index*batch_size:index*batch_size+len(batch[0]),:,:,:] = attention.cpu().numpy()
                 # if preds is None:
@@ -637,7 +666,7 @@ def visualize(args, model, tokenizer, kmer, prefix=""):
                 #     attention_scores = np.concatenate((attention_scores, attention.cpu().numpy()), 0)
                 # else:
                 #     attention_scores = attention.cpu().numpy()
-        
+
         if args.task_name != "dnasplice":
             probs = softmax(torch.tensor(preds, dtype=torch.float32))[:,1].numpy()
         else:
@@ -655,7 +684,7 @@ def visualize(args, model, tokenizer, kmer, prefix=""):
                     attn_score[i] = 0
                     break
 
-            # attn_score[0] = 0    
+            # attn_score[0] = 0
             counts = np.zeros([len(attn_score)+kmer-1])
             real_scores = np.zeros([len(attn_score)+kmer-1])
             for i, score in enumerate(attn_score):
@@ -664,14 +693,14 @@ def visualize(args, model, tokenizer, kmer, prefix=""):
                     real_scores[i+j] += score
             real_scores = real_scores / counts
             real_scores = real_scores / np.linalg.norm(real_scores)
-            
-        
+
+
             # print(index)
             # print(real_scores)
             # print(len(real_scores))
 
             scores[index] = real_scores
-        
+
 
     return scores, probs
 
@@ -713,9 +742,9 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
             label_list[1], label_list[2] = label_list[2], label_list[1]
         examples = (
             processor.get_dev_examples(args.data_dir) if evaluate else processor.get_train_examples(args.data_dir)
-        )   
+        )
 
-        
+
         print("finish loading examples")
 
         # params for convert_examples_to_features
@@ -735,7 +764,7 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
             pad_on_left=pad_on_left,  # pad on the left for xlnet
             pad_token=pad_token,
             pad_token_segment_id=pad_token_segment_id,)
-                
+
         else:
             n_proc = int(args.n_process)
             if evaluate:
@@ -749,20 +778,20 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
                     indexes.append(len_slice*(i))
                 else:
                     indexes.append(len(examples))
-           
+
             results = []
-            
+
             for i in range(n_proc):
                 results.append(p.apply_async(convert_examples_to_features, args=(examples[indexes[i]:indexes[i+1]], tokenizer, max_length, None, label_list, output_mode, pad_on_left, pad_token, pad_token_segment_id, True,  )))
                 print(str(i+1) + ' processor started !')
-            
+
             p.close()
             p.join()
 
             features = []
             for result in results:
                 features.extend(result.get())
-                    
+
 
         if args.local_rank in [-1, 0]:
             logger.info("Saving features into cached file %s", cached_features_file)
@@ -832,8 +861,8 @@ def main():
         required=True,
         help="The output directory where the model predictions and checkpoints will be written.",
     )
-    
-    
+
+
     # Other parameters
     parser.add_argument(
         "--visualize_data_dir",
@@ -1051,7 +1080,7 @@ def main():
     # Load pretrained model and tokenizer
     if args.local_rank not in [-1, 0]:
         torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
-    
+
     args.model_type = args.model_type.lower()
     config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
 
@@ -1062,7 +1091,7 @@ def main():
             finetuning_task=args.task_name,
             cache_dir=args.cache_dir if args.cache_dir else None,
         )
-        
+
         config.hidden_dropout_prob = args.hidden_dropout_prob
         config.attention_probs_dropout_prob = args.attention_probs_dropout_prob
         if args.model_type in ["dnalong", "dnalongcat"]:
@@ -1165,7 +1194,7 @@ def main():
             output_dir = args.output_dir.replace("/690", "/690/" + str(kmer))
             #checkpoint_name = os.listdir(output_dir)[0]
             #output_dir = os.path.join(output_dir, checkpoint_name)
-            
+
             tokenizer = tokenizer_class.from_pretrained(
                 "dna"+str(kmer),
                 do_lower_case=args.do_lower_case,
@@ -1246,11 +1275,11 @@ def main():
                 all_probs += probs
                 cat_probs = np.concatenate((cat_probs, probs), axis=1)
             print(cat_probs[0])
-        
+
 
         all_probs = all_probs / 4.0
         all_preds = np.argmax(all_probs, axis=1)
-        
+
         # save label and data for stuck ensemble
         labels = np.array(out_label_ids)
         labels = labels.reshape(labels.shape[0],1)
@@ -1271,10 +1300,10 @@ def main():
         ensemble_results = compute_metrics(eval_task, all_preds, out_label_ids, all_probs[:,1])
         logger.info("***** Ensemble results {} *****".format(prefix))
         for key in sorted(ensemble_results.keys()):
-            logger.info("  %s = %s", key, str(ensemble_results[key]))    
+            logger.info("  %s = %s", key, str(ensemble_results[key]))
 
 
-            
+
 
 
     return results
