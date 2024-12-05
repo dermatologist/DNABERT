@@ -38,9 +38,11 @@ from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader, Dataset, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
-import sys
 
-sys.path.append('/home/orion-lab/repos/DNABERT')
+
+import sys
+SOURCE = os.environ.get('SOURCE', 'local')
+sys.path.append(SOURCE)
 
 
 
@@ -48,8 +50,19 @@ sys.path.append('/home/orion-lab/repos/DNABERT')
 # try:
 #     from torch.utils.tensorboard import SummaryWriter
 # except ImportError:
-#     from tensorboardX import SummaryWriter
+#     # from tensorboardX import SummaryWriter
+#     SummaryWriter = None
 
+
+class SummaryWriter:
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def add_scalar(self, *args, **kwargs):
+        pass
+
+    def close(self, *args, **kwargs):
+        pass
 
 logger = logging.getLogger(__name__)
 
