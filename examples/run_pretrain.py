@@ -39,6 +39,7 @@ from torch.utils.data import DataLoader, Dataset, RandomSampler, SequentialSampl
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
 
+from genomic_tokenizer import GenomicTokenizer
 
 import sys
 SOURCE = os.environ.get('SOURCE', 'local')
@@ -79,6 +80,7 @@ MODEL_CLASSES = {
     # "gpt2": (GPT2Config, GPT2LMHeadModel, GPT2Tokenizer),
     # "openai-gpt": (OpenAIGPTConfig, OpenAIGPTLMHeadModel, OpenAIGPTTokenizer),
     "dna": (BertConfig, BertForMaskedLM, DNATokenizer),
+    "gt": (BertConfig, BertForMaskedLM, GenomicTokenizer),
     "bert": (BertConfig, BertForMaskedLM, BertTokenizer),
     # "roberta": (RobertaConfig, RobertaForMaskedLM, RobertaTokenizer),
     # "distilbert": (DistilBertConfig, DistilBertForMaskedLM, DistilBertTokenizer),
@@ -114,6 +116,9 @@ class TextDataset(Dataset):
             self.examples = []
             with open(file_path, encoding="utf-8") as f:
                 text = f.read()
+                # remove fasta header
+                text = re.sub(r'^>.*\n', '', text)
+
 
             tokenized_text = tokenizer.convert_tokens_to_ids(tokenizer.tokenize(text))
 
@@ -788,6 +793,8 @@ def main():
         tokenizer = tokenizer_class.from_pretrained(args.tokenizer_name, cache_dir=args.cache_dir)
     elif args.model_name_or_path:
         tokenizer = tokenizer_class.from_pretrained(args.model_name_or_path, cache_dir=args.cache_dir)
+    elif args.model_type == "gt":
+        tokenizer = GenomicTokenizer(512) #TODO: Parameterize
     else:
         raise ValueError(
             "You are instantiating a new {} tokenizer. This is not supported, but you can do it from another script, save it,"
@@ -801,7 +808,8 @@ def main():
         args.block_size = tokenizer.max_len
         # Our input block size will be the max possible for the model
     else:
-        args.block_size = min(args.block_size, tokenizer.max_len)
+        # args.block_size = min(args.block_size, tokenizer.max_len)
+        args.block_size = min(args.block_size, 1024)
 
     if args.model_name_or_path:
         model = model_class.from_pretrained(

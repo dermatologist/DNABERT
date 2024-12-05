@@ -1,7 +1,52 @@
+## Codon-LLM training
+
+* --model_type gt (Genomic Tokenizer)
+
+```
+cd examples
+
+export KMER=6
+export TRAIN_FILE=/home/orion-lab/data/cosmic/Cosmic_Genes_v101_GRCh37.fasta
+export TEST_FILE=sample_data/pre/6_3k.txt
+export SOURCE=/home/orion-lab/repos/DNABERT
+export OUTPUT_PATH=output_codon_llm
+
+python run_pretrain.py \
+    --output_dir $OUTPUT_PATH \
+    --model_type=gt \
+    --tokenizer_name=GenomicTokenizer \
+    --config_name=$SOURCE/src/transformers/dnabert-config/codon-llm-config/config.json \
+    --do_train \
+    --train_data_file=$TRAIN_FILE \
+    --do_eval \
+    --eval_data_file=$TEST_FILE \
+    --mlm \
+    --gradient_accumulation_steps 25 \
+    --per_gpu_train_batch_size 4 \
+    --per_gpu_eval_batch_size 4 \
+    --save_steps 5 \
+    --save_total_limit 2 \
+    --max_steps 100 \
+    --evaluate_during_training \
+    --logging_steps 5 \
+    --line_by_line \
+    --learning_rate 4e-4 \
+    --block_size 512 \
+    --adam_epsilon 1e-6 \
+    --weight_decay 0.01 \
+    --beta1 0.9 \
+    --beta2 0.98 \
+    --mlm_probability 0.025 \
+    --warmup_steps 10 \
+    --overwrite_output_dir \
+    --n_process 8
+```
+
+
+
+
 #### 2.2 Model Training
 
-export TRAIN_FILE=/home/orion-lab/data/genome/seq/human_mutated.txt
-export TEST_FILE=/home/orion-lab/data/genome/seq/human_mutated.txt
 
 ```
 cd examples
