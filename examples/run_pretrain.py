@@ -38,52 +38,38 @@ from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader, Dataset, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
+import sys
 
-from transformers import (
-    WEIGHTS_NAME,
-    AdamW,
-    BertConfig,
-    BertForMaskedLM,
-    BertTokenizer,
-    DNATokenizer,
-    CamembertConfig,
-    CamembertForMaskedLM,
-    CamembertTokenizer,
-    DistilBertConfig,
-    DistilBertForMaskedLM,
-    DistilBertTokenizer,
-    GPT2Config,
-    GPT2LMHeadModel,
-    GPT2Tokenizer,
-    OpenAIGPTConfig,
-    OpenAIGPTLMHeadModel,
-    OpenAIGPTTokenizer,
-    PreTrainedModel,
-    PreTrainedTokenizer,
-    RobertaConfig,
-    RobertaForMaskedLM,
-    RobertaTokenizer,
-    get_linear_schedule_with_warmup,
-)
+sys.path.append('/home/orion-lab/repos/DNABERT')
 
 
-try:
-    from torch.utils.tensorboard import SummaryWriter
-except ImportError:
-    from tensorboardX import SummaryWriter
+
+
+# try:
+#     from torch.utils.tensorboard import SummaryWriter
+# except ImportError:
+#     from tensorboardX import SummaryWriter
 
 
 logger = logging.getLogger(__name__)
 
+from src.transformers.configuration_bert import BertConfig
+from src.transformers.modeling_bert import BertForMaskedLM
+from src.transformers.tokenization_bert import BertTokenizer
+from src.transformers.tokenization_dna import DNATokenizer
+from src.transformers.tokenization_utils import PreTrainedTokenizer
+from src.transformers.modeling_utils import PreTrainedModel
+from src.transformers.optimization import AdamW, get_linear_schedule_with_warmup
+# from torch.utils.tensorboard import SummaryWriter
 
 MODEL_CLASSES = {
-    "gpt2": (GPT2Config, GPT2LMHeadModel, GPT2Tokenizer),
-    "openai-gpt": (OpenAIGPTConfig, OpenAIGPTLMHeadModel, OpenAIGPTTokenizer),
+    # "gpt2": (GPT2Config, GPT2LMHeadModel, GPT2Tokenizer),
+    # "openai-gpt": (OpenAIGPTConfig, OpenAIGPTLMHeadModel, OpenAIGPTTokenizer),
     "dna": (BertConfig, BertForMaskedLM, DNATokenizer),
     "bert": (BertConfig, BertForMaskedLM, BertTokenizer),
-    "roberta": (RobertaConfig, RobertaForMaskedLM, RobertaTokenizer),
-    "distilbert": (DistilBertConfig, DistilBertForMaskedLM, DistilBertTokenizer),
-    "camembert": (CamembertConfig, CamembertForMaskedLM, CamembertTokenizer),
+    # "roberta": (RobertaConfig, RobertaForMaskedLM, RobertaTokenizer),
+    # "distilbert": (DistilBertConfig, DistilBertForMaskedLM, DistilBertTokenizer),
+    # "camembert": (CamembertConfig, CamembertForMaskedLM, CamembertTokenizer),
 }
 
 MASK_LIST = {
@@ -158,7 +144,7 @@ class LineByLineTextDataset(Dataset):
 
             with open(file_path, encoding="utf-8") as f:
                 lines = [line for line in f.read().splitlines() if (len(line) > 0 and not line.isspace())]
-            
+
             if args.n_process == 1:
                 self.examples = tokenizer.batch_encode_plus(lines, add_special_tokens=True, max_length=block_size)["input_ids"]
             else:
@@ -175,7 +161,7 @@ class LineByLineTextDataset(Dataset):
                 for i in range(n_proc):
                     results.append(p.apply_async(convert_line_to_example,[tokenizer, lines[indexes[i]:indexes[i+1]], block_size,]))
                     print(str(i) + " start")
-                p.close() 
+                p.close()
                 p.join()
 
                 self.examples = []
@@ -250,7 +236,7 @@ def _rotate_checkpoints(args, checkpoint_prefix="checkpoint", use_mtime=False) -
 
 def mask_tokens(inputs: torch.Tensor, tokenizer: PreTrainedTokenizer, args) -> Tuple[torch.Tensor, torch.Tensor]:
     """ Prepare masked tokens inputs/labels for masked language modeling: 80% MASK, 10% random, 10% original. """
-    
+
     mask_list = MASK_LIST[tokenizer.kmer]
 
     if tokenizer.mask_token is None:
@@ -284,7 +270,7 @@ def mask_tokens(inputs: torch.Tensor, tokenizer: PreTrainedTokenizer, args) -> T
                     new_centers.add(current_index)
         new_centers = list(new_centers)
         masked_indices[i][new_centers] = True
-    
+
 
     labels[~masked_indices] = -100  # We only compute loss on masked tokens
 
