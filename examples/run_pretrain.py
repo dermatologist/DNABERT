@@ -99,7 +99,7 @@ class TextDataset(Dataset):
     def __init__(self, tokenizer: PreTrainedTokenizer, args, file_path: str, block_size=512):
         assert os.path.isfile(file_path)
 
-        block_size = block_size - (tokenizer.max_len - tokenizer.max_len_single_sentence)
+        # block_size = block_size - (tokenizer.max_len - tokenizer.max_len_single_sentence)
 
         directory, filename = os.path.split(file_path)
         cached_features_file = os.path.join(
@@ -116,8 +116,12 @@ class TextDataset(Dataset):
             self.examples = []
             with open(file_path, encoding="utf-8") as f:
                 text = f.read()
-                # remove fasta header
-                text = re.sub(r'^>.*\n', '', text)
+                # change fasta header to '>>>'
+                text = re.sub(r'^>.*\n', '>>>', text)
+                # remove new line
+                text = re.sub(r'\n', ' ', text)
+                # change >>> to \n
+                text = re.sub(r'>>>', '\n', text)
 
 
             tokenized_text = tokenizer.convert_tokens_to_ids(tokenizer.tokenize(text))

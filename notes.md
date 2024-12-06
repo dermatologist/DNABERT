@@ -14,7 +14,6 @@ export OUTPUT_PATH=output_codon_llm
 python run_pretrain.py \
     --output_dir $OUTPUT_PATH \
     --model_type=gt \
-    --tokenizer_name=GenomicTokenizer \
     --config_name=$SOURCE/src/transformers/dnabert-config/codon-llm-config/config.json \
     --do_train \
     --train_data_file=$TRAIN_FILE \
@@ -29,7 +28,6 @@ python run_pretrain.py \
     --max_steps 100 \
     --evaluate_during_training \
     --logging_steps 5 \
-    --line_by_line \
     --learning_rate 4e-4 \
     --block_size 512 \
     --adam_epsilon 1e-6 \
